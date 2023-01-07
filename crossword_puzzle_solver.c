@@ -7,53 +7,76 @@
 ╚██████╗██║  ██║╚██████╔╝███████║███████║    ███████║███████╗██║  ██║   ██║   ███████╗██║  ██║    ██████╔╝╚██████╔╝╚██████╔╝╚██████╔╝
  ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚═════╝  ╚═════╝  ╚═════╝  ╚═════╝ v0.1
                                                                                                                                                                                                      
- - THE ULTIMATE CROSSWORD PUZZLE SOLVER
+ - THE ULTIMATE CROSSWORD PUZZLE SOLVER ( Warning: Since this algorithm is using a bruteforce method to solve ,not efficient for larger puzzles :\ )
 
  
  */
 
 #include <stdio.h>
+#include <string.h>     
 
 // Variables
-#define xSIZE 5
-#define ySIZE 5
+#define xSIZE 20
+#define ySIZE 20
+int grid_XSize = xSIZE;
+int grid_YSize = ySIZE;
+int grid_xsizeChanged = 0;
 
-char grid[ySIZE][xSIZE] =         { {'#','#','#','#','#'},
-                                    {'*','*','*','#','*'},
-                                    {'#','#','#','#','#'},
-                                    {'*','*','*','*','*'},
-                                    {'#','#','#','*','*'}};
+#define maxWords 40
+#define maxSizeofWord 10
 
-char wordsList[10][10] = {"hello","look","tan","brryr","brrnr","car"};
+char grid[ySIZE][xSIZE];
 
+
+//const int maxWords = 25, maxSizeofWord = 10;
+char wordsList[maxWords][maxSizeofWord] ;
+int wordcounter = 0;
+char used_words[maxWords][maxSizeofWord];
 
 struct entry
 {
     int number_of_letters;
-    char word[10]; 
+    char word[maxSizeofWord]; 
     int filled ;
     int oriantation ;
     int xPos, yPos; 
 
-    char eligible_words[10][20];
+    char eligible_words[40][maxSizeofWord];
     int eligible_words_curser ;
+
 
 
 };
 typedef struct entry Entry;
 
-Entry crossword_entries[10];
+typedef struct  _
+{
+    char word[maxSizeofWord];
+} temp_save;            //used for return strings - 'temp_save' because returned string is temporarily saving previous state of entry
+
+
+Entry crossword_entries[100];
 int crossword_entries_curser = 0;
 
 
 
-
-
 //utility functions
-void printgrid(char grid[ySIZE][xSIZE] ){   
-    for (int i = 0; i < ySIZE; i++)
+void printgrid(char grid[ySIZE][xSIZE]){   
+    for (int i = 0; i < grid_YSize; i++)
     {
-        for (int j = 0; j < xSIZE; j++)
+        for (int j = 0; j < grid_XSize; j++)
+        {
+            printf("%c",grid[i][j]);
+        }
+        printf("\n");
+        
+    }
+}
+
+void printwords(char grid[maxWords][maxSizeofWord] ){   
+    for (int i = 0; i < maxWords; i++)
+    {
+        for (int j = 0; j < maxSizeofWord; j++)
         {
             printf("%c",grid[i][j]);
         }
@@ -77,12 +100,22 @@ int isletter(char x){
     
 }
 
+void strupper(char _word[maxSizeofWord]){
+
+    for (int i = 0; i < size_of_string(_word); i++)
+    {
+        _word[i] &= ~32; 
+    }
+    
+
+}
+
 void printEntry(Entry _entry){
     // for debuging purposes
     printf("word:%s\nNo.letters%d\nfilled:%d\noriantaion:%d\nxPos:%d yPos:%d\n", _entry.word,_entry.number_of_letters,_entry.filled,_entry.oriantation,_entry.xPos,_entry.yPos);
     for (int i = 0; i < _entry.eligible_words_curser; i++)
     {
-        printf("%s",_entry.eligible_words[i]);
+        printf("%s ",_entry.eligible_words[i]);
     }
     printf("\n-----------------\n");
 
@@ -98,65 +131,27 @@ void stringcpy(char* destination, const char* source)
     }
     *destination = '\0';
 }
-//
 
-
-int search_grid(char* word, char grid[ySIZE][xSIZE])
-{
-    /*
-
-        looks for the presence of the word in the grid
-
-    */
-
-   
-    int grid_size = xSIZE;
-
-    // Check if the word is present horizontally
-    for (int i = 0; i < grid_size; i++)
+int isthereAspace(char grid[ySIZE][xSIZE]){
+     for (int i = 0; i < grid_YSize; i++)
     {
-        for (int j = 0; j < grid_size - size_of_string(word) + 1; j++)
+        for (int j = 0; j < grid_XSize; j++)
         {
-            int found = 1;
-            for (int k = 0; k < size_of_string(word); k++)
-            {
-                if (word[k] != grid[i][j + k])
-                {
-                    found = 0;
-                    break;
-                }
-            }
-
-            if (found)
-            {
-                return 1;
-            }
-        }
-    }
-// Check if the word is present vertically
-    for (int i = 0; i < grid_size; i++)
-    {
-        for (int j = 0; j < grid_size - size_of_string(word) + 1; j++)
+            if (grid[i][j]=='#')
         {
-            int found = 1;
-            for (int k = 0; k < size_of_string(word); k++)
-            {
-                if (word[k] != grid[j + k][i])
-                {
-                    found = 0;
-                    break;
-                }
-            }
-
-            if (found)
-            {
-                return 1;
-            }
+            return 1;
         }
+            
+        }
+        
     }
 
     return 0;
+
 }
+//
+
+
 
 void append_words(char _word[], Entry* _entry){
     
@@ -200,59 +195,36 @@ int pushword(int xPos, int yPos, char* _word, int oriantaion){
         if(oriantaion == 1){
             for (int i = 0; i < size_of_string(_word); i++)
         {
-            if( isletter(grid[yPos][xPos + i]) && !(grid[yPos][xPos+i] == *(_word+i) || grid[yPos][xPos+i] == *(_word+i)+ 'a'-'A'|| grid[yPos][xPos+i] == *(_word+i)+ 'A'-'a')){return 0;}
+            if( isletter(grid[yPos][xPos+i]) && ((grid[yPos][xPos+i] &~32)  != (*(_word+i) &~32) )){return 0;}
+            
             
         }
 
         }else if(oriantaion == 2){
             for (int i = 0; i < size_of_string(_word); i++)
         {
-            if( isletter(grid[yPos + i][xPos]) && !(grid[yPos+i][xPos] == *(_word+i) || grid[yPos+i][xPos] == *(_word+i)+ 'a'-'A'|| grid[yPos+i][xPos] == *(_word+i)+ 'A'-'a')){return 0;}
+            if(isletter(grid[yPos+i][xPos]) && ( (grid[yPos+i][xPos] &~32) != (*(_word+i) &~32) )){return 0;}
             
         }
+
         }
     return 1;
        
 
 }
 
-void fill(int xPos, int yPos, char* _word, int oriantaion){
+temp_save fill(int xPos, int yPos, char* _word, int oriantaion){
    
    /*
         fill the grid using the word
    */
+
+        temp_save previous_word;
    
         if(oriantaion == 1){
             for (int i = 0; i < size_of_string(_word); i++)
         {
-            
-            if(grid[yPos][xPos+i] != *(_word+i) && grid[yPos][xPos+i] != *(_word+i)+'a'-'A' && grid[yPos][xPos+i] != *(_word+i)+'A'-'a' )grid[yPos][xPos+i] = *(_word+i);
-            
-        }
-
-        }else if(oriantaion == 2){
-            for (int i = 0; i < size_of_string(_word); i++)
-        {
-            
-            if(grid[yPos+i][xPos] != *(_word+i) && grid[yPos+i][xPos] != *(_word+i)+'a'-'A' &&  grid[yPos+i][xPos] != *(_word+i)+'A'-'a')grid[yPos+i][xPos] = *(_word+i);
-            
-        }
-        }
-
-        
-
-}
-
-void unfill(int xPos, int yPos, char* _word, int oriantaion){
-   
-   /*
-        unfill the grid for the given word
-   */
-   
-        if(oriantaion == 1){
-            for (int i = 0; i < size_of_string(_word); i++)
-        {
-            
+            previous_word.word[i] = grid[yPos][xPos+i];
             grid[yPos][xPos+i] = *(_word+i);
         }
 
@@ -260,7 +232,33 @@ void unfill(int xPos, int yPos, char* _word, int oriantaion){
             for (int i = 0; i < size_of_string(_word); i++)
         {
             
+            previous_word.word[i] = grid[yPos+i][xPos];
             grid[yPos+i][xPos] = *(_word+i);
+        }
+        }
+    return previous_word;
+        
+
+}
+
+void unfill(int xPos, int yPos, char* _word, int oriantaion,int size_of_word){
+   
+   /*
+        unfill the grid for the given word
+   */
+   
+        if(oriantaion == 1){
+            for (int i = 0; i < size_of_word; i++)
+        {   
+            
+            grid[yPos][xPos+i] = *(_word+i);
+        }
+
+        }else if(oriantaion == 2){
+            for (int i = 0; i < size_of_word; i++)
+        {
+            
+           grid[yPos+i][xPos] = *(_word+i);
         }
         }
 
@@ -273,17 +271,18 @@ void unfill(int xPos, int yPos, char* _word, int oriantaion){
 
 void read_grid(){
 
+
     //tempory varibles
     int horizontal_wCount=0, vertical_wCount=0 , curser = 0,filled = 0,xPos,yPos;
-    char reading_word[10] = "";
+    char reading_word[maxSizeofWord] = "";
 
     //horizontal reading
 
-    for (int i = 0; i < ySIZE; i++)
+    for (int i = 0; i < grid_YSize; i++)
     {
         
         curser = 0;
-        for (int j = 0; j < xSIZE; j++)
+        for (int j = 0; j < grid_XSize; j++)
         {
             if(curser == 0 && (grid[i][j] == '#' || isletter(grid[i][j])) && (grid[i][j+1] == '#' || isletter(grid[i][j+1])) ){
                 
@@ -294,7 +293,7 @@ void read_grid(){
                 
                 }
 
-            else if(curser > 0 && ((grid[i][j+1] != '#' && !isletter(grid[i][j+1])) || (j == xSIZE-1 ) )){
+            else if(curser > 0 && ((grid[i][j+1] != '#' && !isletter(grid[i][j+1])) || (j == grid_XSize-1 ) )){
                 
                 // save reading word to reading_word varible
                 for (int k = 0; k < curser+1; k++)
@@ -325,26 +324,26 @@ void read_grid(){
 
 
     // vertical reading
-    for (int i = 0; i < xSIZE; i++)
+    for (int j = 0; j < grid_XSize; j++)
     {   
         
         curser = 0;
-        for (int j = 0; j < ySIZE; j++)
+        for (int i = 0; i < grid_YSize; i++)
         {
-            if(curser == 0 && (grid[j][i] == '#' || isletter(grid[j][i]))  && (grid[j+1][i] == '#' || isletter(grid[j+1][i])) ){
+            if(curser == 0 && (grid[i][j] == '#' || isletter(grid[i][j]))  && (grid[i+1][j] == '#' || isletter(grid[i+1][j])) ){
                 
-                xPos = i;
-                yPos = j;
-                filled = isletter(grid[j][i]) && isletter(grid[j+1][i]);
+                xPos = j;
+                yPos = i;
+                filled = isletter(grid[i][j]) && isletter(grid[i+1][j]);
                 curser++;
             }
 
-            else if(curser > 0 && ((grid[j+1][i] != '#' && !isletter(grid[j+1][i] )) || (j == ySIZE-1 ) )){
+            else if(curser > 0 && ((grid[i+1][j] != '#' && !isletter(grid[i+1][j] )) || (i == grid_YSize-1 ) )){
 
                   
                 for (int k = 0; k < curser+1; k++)
                 {
-                    reading_word[k] = grid[j-curser+k][i];
+                    reading_word[k] = grid[i-curser+k][j];
                 }
                     
                 append_entries(reading_word,curser+1,filled,2,xPos,yPos);
@@ -375,9 +374,9 @@ void checkEligibleWords(){
     for (int i = 0; i < crossword_entries_curser; i++)
     {   
        
-        for (int j = 0; j < 10; j++)
+        for (int j = 0; j < maxWords ; j++)
         {
-            
+            if( !isletter(wordsList[j][0]))continue;
             if (( crossword_entries[i].number_of_letters == size_of_string(wordsList[j]) ) && !crossword_entries[i].filled)
             {
                 append_words(wordsList[j],&crossword_entries[i]);
@@ -394,10 +393,26 @@ void checkEligibleWords(){
 
 }
 
-int solve(int entry_id){
+int is_word_in_list( char word[maxSizeofWord],  char list[100][maxSizeofWord], size_t list_size) {
+    for (size_t i = 0; i < list_size; i++) {
+        if (strcmp((const char*)word, (const char*)list[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
+int solve(int entry_id){
+    /*
+        Solving algorithm - backtracking
+    */
+    
     if (entry_id == crossword_entries_curser)
     {
+        return 1;
+    }
+
+    if(!isthereAspace(grid)){   //if there is no spaces
         return 1;
     }
     
@@ -414,23 +429,47 @@ int solve(int entry_id){
     
 
     for (int w = 0; w < crossword_entries[entry_id].eligible_words_curser; w++)
-    {
-        if(search_grid(crossword_entries[entry_id].eligible_words[w],grid)){continue;}
-        if ( pushword(crossword_entries[entry_id].xPos , crossword_entries[entry_id].yPos, crossword_entries[entry_id].eligible_words[w],crossword_entries[entry_id].oriantation) )
+    {  
+        
+       
+            //printf("\n entry : %d trying word : %s \n",entry_id, crossword_entries[entry_id].eligible_words[w]); //<--- for debuging purposes
+           
+
+            while(is_word_in_list(crossword_entries[entry_id].eligible_words[w],used_words,100)){
+
+                if(w+1 != crossword_entries[entry_id].eligible_words_curser)w++;
+                else return 0;
+            }
+
+            
+
+        if ( pushword(crossword_entries[entry_id].xPos , crossword_entries[entry_id].yPos, crossword_entries[entry_id].eligible_words[w],crossword_entries[entry_id].oriantation)  )
         {
             
-            fill(crossword_entries[entry_id].xPos , crossword_entries[entry_id].yPos, crossword_entries[entry_id].eligible_words[w],crossword_entries[entry_id].oriantation);
-            
+
+           
+            temp_save temp = fill(crossword_entries[entry_id].xPos , crossword_entries[entry_id].yPos, crossword_entries[entry_id].eligible_words[w],crossword_entries[entry_id].oriantation);
+            stringcpy(used_words[entry_id], crossword_entries[entry_id].eligible_words[w]);
+
+            // printf("\n --------%s-------------\n",temp.word);        //<--- for debuging purposes
+            // printgrid(grid);
+            // printf("\n ---------------------\n");
             
             if (solve(entry_id + 1))
             { 
                 return 1;
+            }else{
+                unfill(crossword_entries[entry_id].xPos , crossword_entries[entry_id].yPos, temp.word,crossword_entries[entry_id].oriantation,crossword_entries[entry_id].number_of_letters);
+                stringcpy(used_words[entry_id], "");
+
+                continue;
             }
 
 
-            unfill(crossword_entries[entry_id].xPos , crossword_entries[entry_id].yPos, crossword_entries[entry_id].word,crossword_entries[entry_id].oriantation);
+            
+            
         }
-        // printgrid(grid);
+        
     }
     
     
@@ -439,23 +478,130 @@ int solve(int entry_id){
 }
 
 
+
+
+void getGridInput(char grid[ySIZE][xSIZE])
+{
+    /*
+        for taking grid input
+    */
+    for (int i = 0; i < ySIZE; i++)
+    {
+        char text[xSIZE];
+        fgets(text, xSIZE, stdin);
+        
+        if(!grid_xsizeChanged){
+            grid_XSize = size_of_string(text)-1;
+            grid_xsizeChanged = 1;}
+        
+        if (text[0] == '\n')
+        {   
+            grid_YSize = i;
+            stringcpy(grid[i], "\0");
+            break;
+        }
+        stringcpy(grid[i], text);
+    }
+}
+
+int input_words(char _wordslist[maxWords][maxSizeofWord]){
+
+    /*
+        for taking inputs for word list
+    */
+    int i=0;
+    int isinvalid = 0;
+    
+    
+    char line[maxSizeofWord];
+    
+    while (scanf("%[^\n]s", line) == 1) 
+    {
+        int itterVar = size_of_string(line);
+        for (int k = 0; k < itterVar; k++)
+        {
+            
+            if (!isletter(line[k]) )
+            {
+                isinvalid =1;
+                
+            }
+            
+        }
+        
+        getchar();
+        stringcpy(_wordslist[i],line);
+        //strupper(_wordslist[i]);
+        stringcpy(line, "");
+        i++;
+    }
+
+    
+    return isinvalid;
+    
+}
+
+int searchInvalidInputs_ingrid(char grid[ySIZE][xSIZE]){
+
+    /*
+        search for invalid charactors in the grid
+    */
+
+    for (int i = 0; i < grid_YSize; i++)
+    {
+        for (int j = 0; j < grid_XSize; j++)
+        {
+            if (!(isletter(grid[i][j]) || grid[i][j]=='#' || grid[i][j] == '*'))
+        {
+            return 1;
+        }
+            
+        }
+        
+    }
+    return 0;
+
+}
+
+
 int main(){
+    
+    getGridInput(grid);
+    //printf("%d %d",grid_XSize,grid_YSize);                                                               // for debugging purposes - use to see the grid input is correctly working
+    
+    int words_invalid = input_words(wordsList);
+    int is_there_invalid_charactors_in_grid = searchInvalidInputs_ingrid(grid);
+
+
+     if (is_there_invalid_charactors_in_grid || words_invalid)      
+    {
+        //printf("INVALID INPUT grid:%d words:%d",is_there_invalid_charactors_in_grid, words_invalid);     // for debugging purposes - use to see the which cause for invalid input    
+        printf("INVALID INPUT");
+        return 0;
+    }
+
+    //  printwords(wordsList);                                                                              // for debugging purposes - use to see the words list is correctly working
+
+    
 
     read_grid(grid);
     checkEligibleWords();
 
-    if(solve(0)){
-        printf("solved\n");
+
+
+    if(solve(0) && !isthereAspace(grid) ){
+
         printgrid(grid);
     }else{
-        printf("not solved");
+        printf("IMPOSSIBLE");
     }
 
 
    
 
     
-
+    // for debugging purposes - use to see the information about spaces in puzzle
+    
     // for (int i = 0; i < crossword_entries_curser; i++)
     // {
     //    printEntry(crossword_entries[i]);

@@ -1,13 +1,36 @@
 /*
 
- ██████╗██████╗  ██████╗ ███████╗███████╗    ███████╗██╗      █████╗ ██╗   ██╗███████╗██████╗     ██████╗  ██████╗  ██████╗  ██████╗ 
+ ██████╗██████╗  ██████╗ ███████╗███████╗    ███████╗██╗      █████╗ ██╗   ██╗███████╗██████╗     ██████╗  ██████╗  ██████╗  ██████╗ ©
 ██╔════╝██╔══██╗██╔═══██╗██╔════╝██╔════╝    ██╔════╝██║     ██╔══██╗╚██╗ ██╔╝██╔════╝██╔══██╗    ╚════██╗██╔═████╗██╔═████╗██╔═████╗
 ██║     ██████╔╝██║   ██║███████╗███████╗    ███████╗██║     ███████║ ╚████╔╝ █████╗  ██████╔╝     █████╔╝██║██╔██║██║██╔██║██║██╔██║
 ██║     ██╔══██╗██║   ██║╚════██║╚════██║    ╚════██║██║     ██╔══██║  ╚██╔╝  ██╔══╝  ██╔══██╗     ╚═══██╗████╔╝██║████╔╝██║████╔╝██║
 ╚██████╗██║  ██║╚██████╔╝███████║███████║    ███████║███████╗██║  ██║   ██║   ███████╗██║  ██║    ██████╔╝╚██████╔╝╚██████╔╝╚██████╔╝
- ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚═════╝  ╚═════╝  ╚═════╝  ╚═════╝ v0.1
+ ╚═════╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝    ╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚═════╝  ╚═════╝  ╚═════╝  ╚═════╝ v1.0
                                                                                                                                                                                                      
- - THE ULTIMATE CROSSWORD PUZZLE SOLVER ( Warning: Since this algorithm is using a bruteforce method to solve ,not efficient for larger puzzles :\ )
+ - THE ULTIMATE CROSSWORD PUZZLE SOLVER 
+
+authors:
+SENEVIRATHNE W.A.M.P.   (E/19/366)
+DE SILVA D.M.           (E/18/059)
+
+Note: Here a backtracking algorithm is used in 2 ways for solving.
+
+
+1st method :                                                                   2nd method : 
+                        ┌───────┐   ┌───────┐   ┌───────┐                                   ┌───────┐   ┌───────┐   ┌───────┐
+             entry1     │ word1 │   │ word2 │   │ word3 │...                     word1      │entry1 │   │entry2 │   │entry3 │...
+                        └───────┘   └───────┘   └───────┘                                   └───────┘   └───────┘   └───────┘
+                            ↓                                 ------------->                    ↓
+                        ┌───────┐   ┌───────┐                   if it takes                 ┌───────┐   ┌───────┐ 
+             entry2     │ word1 │   │ word2 │  ...              too much time    word2      │entry1 │   │entry2 │  ...
+                        └───────┘   └───────┘                   to solve or                 └───────┘   └───────┘
+                            ↓                                   can't use                       ↓
+                        ┌───────┐   ┌───────┐   ┌───────┐                                   ┌───────┐   ┌───────┐   ┌───────┐
+             entry3     │ word1 │   │ word2 │   │ word3 │ ...                    word3      │entry1 │   │entry2 │   │entry3 | ...
+                        └───────┘   └───────┘   └───────┘                                   └───────┘   └───────┘   └───────┘
+                .                                                                   .
+                .                                                                   .
+                .                                                                   .
 
  
  */
@@ -16,22 +39,24 @@
 #include <string.h>     
 
 // Variables
-#define xSIZE 20
-#define ySIZE 20
+#define xSIZE 50
+#define ySIZE 50
 int grid_XSize = xSIZE;
 int grid_YSize = ySIZE;
-int grid_xsizeChanged = 0;
-
-#define maxWords 40
-#define maxSizeofWord 10
-
 char grid[ySIZE][xSIZE];
 
+int grid_xsizeChanged = 0;
 
-//const int maxWords = 25, maxSizeofWord = 10;
+
+#define maxWords 50
+#define maxSizeofWord 10
+
 char wordsList[maxWords][maxSizeofWord] ;
 int wordcounter = 0;
+
+
 char used_words[maxWords][maxSizeofWord];
+int used_entries[100];
 
 struct entry
 {
@@ -62,6 +87,9 @@ int crossword_entries_curser = 0;
 
 //utility functions
 void printgrid(char grid[ySIZE][xSIZE]){   
+    
+    // print the grid
+
     for (int i = 0; i < grid_YSize; i++)
     {
         for (int j = 0; j < grid_XSize; j++)
@@ -74,6 +102,8 @@ void printgrid(char grid[ySIZE][xSIZE]){
 }
 
 void printwords(char grid[maxWords][maxSizeofWord] ){   
+    
+    /*for debugging purposes - print the wordlist*/
     for (int i = 0; i < maxWords; i++)
     {
         for (int j = 0; j < maxSizeofWord; j++)
@@ -86,6 +116,7 @@ void printwords(char grid[maxWords][maxSizeofWord] ){
 }
 
 int size_of_string(char* _word ){
+    //return the size of given string
     int i=0;
     while ( *(_word+i) != '\0') { i++; }
     return i;
@@ -93,6 +124,7 @@ int size_of_string(char* _word ){
 }
 
 int isletter(char x){
+    //check the given character is within the ASCII range of A-Z or a-z 
     if (( x >= 'a' && x<= 'z' ) || ( x >= 'A' && x<= 'Z' ))
     {
        return 1 ;
@@ -122,7 +154,7 @@ void printEntry(Entry _entry){
 }
 
 void stringcpy(char* destination, const char* source)
-{
+{   //copy strings
     while (*source != '\0')
     {
         *destination = *source;
@@ -133,6 +165,9 @@ void stringcpy(char* destination, const char* source)
 }
 
 int isthereAspace(char grid[ySIZE][xSIZE]){
+
+    /*check for '#'s in the grid*/
+
      for (int i = 0; i < grid_YSize; i++)
     {
         for (int j = 0; j < grid_XSize; j++)
@@ -148,6 +183,55 @@ int isthereAspace(char grid[ySIZE][xSIZE]){
 
     return 0;
 
+}
+
+int is_word_in_list( char word[maxSizeofWord],  char list[100][maxSizeofWord], size_t list_size) {
+    
+    /*check if the given word is already in the given list*/
+
+    for (size_t i = 0; i < list_size; i++) {
+        if (strcmp((const char*)word, (const char*)list[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int searchInvalidInputs_ingrid(char grid[ySIZE][xSIZE]){
+
+    /*
+        search for invalid charactors in the grid
+    */
+
+    for (int i = 0; i < grid_YSize; i++)
+    {
+        for (int j = 0; j < grid_XSize; j++)
+        {
+            if (!(isletter(grid[i][j]) || grid[i][j]=='#' || grid[i][j] == '*'))
+        {
+            return 1;
+        }
+            
+        }
+        
+    }
+    return 0;
+
+}
+
+int isExceedTreshold(int threshold){
+    /*
+        Use for check whether each entry has more words than threshold
+    */
+
+    int returnVar = 1;
+
+    for (int i = 0; i < crossword_entries_curser; i++)
+    {
+        if(crossword_entries->eligible_words_curser > threshold)  returnVar &=1;
+        else returnVar &=0 ; 
+    }
+    return returnVar;
 }
 //
 
@@ -183,7 +267,6 @@ void append_entries(char _word[], int numberOfLetters , int filled, int oriantat
     crossword_entries_curser++; 
 
 }
-
 
 int pushword(int xPos, int yPos, char* _word, int oriantaion){
   
@@ -267,7 +350,7 @@ void unfill(int xPos, int yPos, char* _word, int oriantaion,int size_of_word){
 }
 
 
-
+// functions for extract/find informations about spaces
 
 void read_grid(){
 
@@ -371,6 +454,8 @@ void read_grid(){
 
 void checkEligibleWords(){
 
+    /*check for suitable words for given space*/
+
     for (int i = 0; i < crossword_entries_curser; i++)
     {   
        
@@ -393,18 +478,11 @@ void checkEligibleWords(){
 
 }
 
-int is_word_in_list( char word[maxSizeofWord],  char list[100][maxSizeofWord], size_t list_size) {
-    for (size_t i = 0; i < list_size; i++) {
-        if (strcmp((const char*)word, (const char*)list[i]) == 0) {
-            return 1;
-        }
-    }
-    return 0;
-}
+// solving functions
 
 int solve(int entry_id){
     /*
-        Solving algorithm - backtracking
+        Solving algorithm - backtracking for the grid
     */
     
     if (entry_id == crossword_entries_curser)
@@ -477,8 +555,71 @@ int solve(int entry_id){
 
 }
 
+int solve2(int word_id){
+    /*
+        Solving algorithm 2 - backtracking for wordlist
+    */
+    
+    if (word_id == wordcounter)
+    {
+        return 1;
+    }
+
+    // if(!isthereAspace(grid)){   //if there is no spaces
+    //     return 1;
+    // }
+    
+
+    
+
+    for (int c = 0; c < crossword_entries_curser; c++)
+    {  
+        
+       
+            //printf("\n entry : %d trying word : %s \n",entry_id, crossword_entries[entry_id].eligible_words[w]); //<--- for debuging purposes
+           
+            
+
+        if ( pushword(crossword_entries[c].xPos , crossword_entries[c].yPos, wordsList[word_id],crossword_entries[c].oriantation)  && (size_of_string(wordsList[word_id]) == crossword_entries[c].number_of_letters) && !crossword_entries[c].filled)
+        {
+            
+           
+           
+            temp_save temp = fill(crossword_entries[c].xPos , crossword_entries[c].yPos, wordsList[word_id],crossword_entries[c].oriantation);
+            crossword_entries[c].filled = 1;
 
 
+            // printf("\n --------%s-------------\n",temp.word);        //<--- for debuging purposes
+            // printgrid(grid);
+            // printf("\n ---------------------\n");
+            
+            if (solve2(word_id + 1))
+            { 
+                return 1;
+            }else{
+                unfill(crossword_entries[c].xPos , crossword_entries[c].yPos, temp.word,crossword_entries[c].oriantation,crossword_entries[c].number_of_letters);
+                crossword_entries[c].filled = 0;
+
+                continue;
+            }
+
+
+            
+            
+        }
+        if(crossword_entries[c].filled){
+            continue;
+
+        }
+        
+    }
+    
+    
+    return 0;
+
+}
+
+// functions for taking inputs
 
 void getGridInput(char grid[ySIZE][xSIZE])
 {
@@ -531,6 +672,7 @@ int input_words(char _wordslist[maxWords][maxSizeofWord]){
         
         getchar();
         stringcpy(_wordslist[i],line);
+        wordcounter++;
         //strupper(_wordslist[i]);
         stringcpy(line, "");
         i++;
@@ -541,27 +683,6 @@ int input_words(char _wordslist[maxWords][maxSizeofWord]){
     
 }
 
-int searchInvalidInputs_ingrid(char grid[ySIZE][xSIZE]){
-
-    /*
-        search for invalid charactors in the grid
-    */
-
-    for (int i = 0; i < grid_YSize; i++)
-    {
-        for (int j = 0; j < grid_XSize; j++)
-        {
-            if (!(isletter(grid[i][j]) || grid[i][j]=='#' || grid[i][j] == '*'))
-        {
-            return 1;
-        }
-            
-        }
-        
-    }
-    return 0;
-
-}
 
 
 int main(){
@@ -584,23 +705,53 @@ int main(){
 
     
 
-    read_grid(grid);
-    checkEligibleWords();
+    read_grid(grid);            // extract informations from the grid
+    checkEligibleWords();       // find suitable words for each space
 
 
 
-    if(solve(0) && !isthereAspace(grid) ){
+    int solved = 0;
+    if( wordcounter >= crossword_entries_curser || !isExceedTreshold(4)){
+        /*
+            Use 1st Algorithm when there are more words given than number of spaces or number of words that can be used for fill a space is less than given treshold
+        */
+       
+    if(solve(0) ){
+
+        solved = 1;
+    }else{
+        solved = 0;
+    }
+
+    }else{
+
+        /*
+            otherwise use 2nd Algorithm
+        */
+               
+    if(solve2(0) ){
+
+        solved = 1;
+    }else{
+        solved = 0;
+    }
+
+
+    }
+    
+
+    // Output for succesesfull input
+    if(solved){
 
         printgrid(grid);
     }else{
         printf("IMPOSSIBLE");
     }
 
-
    
 
     
-    // for debugging purposes - use to see the information about spaces in puzzle
+    // // for debugging purposes - use to see the information about spaces in puzzle
     
     // for (int i = 0; i < crossword_entries_curser; i++)
     // {
